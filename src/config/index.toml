@@ -15,11 +15,21 @@ TO = "zh-CHS"
 [setting]
 # 是否深层目录 仅目录生效
 DEEP = true
-# 目标范围, 文件=files\目录=dirs\所有=all
+# 目标范围，文件=files\目录=dirs\所有=all
 TARGET = "dirs"
 # 是否规范命名
 SPECIFICATION = true
+# 命名分割字符
+# ❗ 注意若目录名原先存在分割字符，会只保留分割部分
+SPACER_CHARACTER = " "
 
+[concurrency]
+# 最大线程数
+MAX_THREAD = 1
+# 最大协程数
+MAX_COROUTINE = 1
+# 并发延迟，应对有道API该死的频率限制
+DELAY = 0.8
 
 [log]
 # 是否启用日志

@@ -9,12 +9,11 @@ import rtoml
 import hashlib
 import aiohttp
 from pathlib import Path
-from concurrent.futures import ThreadPoolExecutor
-
 from typing import List
 
-from utils import PathHelper, singleton
-from config import BASE_CONFIG_DIR
+from src.config import BASE_CONFIG_DIR
+from src.concurrency import concurrency_exec
+from src.utils import PathHelper, singleton
 
 
 @singleton
@@ -48,6 +47,13 @@ class TranslationConfig:
             return toml["setting"]
         return {}
 
+    @property
+    def concurrency(self):
+        toml = self.read()
+        if "concurrency" in toml:
+            return toml["concurrency"]
+        return {}
+
     def exec(self):
         pass
 
@@ -79,7 +85,8 @@ class TranslationDir:
 
         # 是否忽略数字名称
         if ignore_num:
-            source = [i for i in source if not re.match(r"^\s*\d+\s*(.\w+)$", i.name)]
+            source = [i for i in source if
+                      not re.match(r"^\s*\d+\s*(.\w+)$", i.name)]
 
         return source
 
@@ -118,6 +125,7 @@ class TranslationHttps:
             "salt": str(uuid.uuid4()),
             "curtime": str(math.trunc(time.time())),
             "signType": "v3",
+            "strict": "true",
             "appKey": self.app_key
         }
 
@@ -127,7 +135,8 @@ class TranslationHttps:
     def createSign(self, text, salt, curtime):
         text_len = len(text)
         hash256 = hashlib.sha256()
-        ftext = text if text_len <= 20 else text[0:10] + str(text_len) + text[text_len - 10:]
+        ftext = text if text_len <= 20 else text[0:10] + str(text_len) + text[
+                                                                         text_len - 10:]
         plaintext = self.app_key + ftext + salt + curtime + self.app_secret
 
         hash256.update(plaintext.encode("utf-8"))
@@ -135,7 +144,8 @@ class TranslationHttps:
 
     async def exec(self, text, url, _to, _form="auto"):
         params = self.params
-        async with aiohttp.ClientSession(base_url=self.base_url, headers=self.header) as session:
+        async with aiohttp.ClientSession(base_url=self.base_url,
+                                         headers=self.header) as session:
             response = await session.post(url, params={
                 **params,
                 "q": text,
@@ -143,9 +153,14 @@ class TranslationHttps:
                 "to": _to,
                 "sign": self.createSign(text, params["salt"], params["curtime"])
             })
+            source = await response.json()
+
+            if "errorCode" in source and ((code := source["errorCode"]) != "0"):
+                print(f"\033[0;31m有道API出现异常，错误代码{code}\033[0m\n", end="")
+
             if response.ok:
-                source = await response.json()
-                if "translation" in source and len((translation := source["translation"])) > 0:
+                if "translation" in source and len(
+                    (translation := source["translation"])) > 0:
                     return translation[0]
         return text
 
@@ -157,39 +172,41 @@ class TranslationRecord:
 
 async def task(path, text):
     tconfig = TranslationConfig()
+    setting = tconfig.setting
+
     URL, URL_PATH, APP_KEY, APP_SECRET, FROM, TO = tconfig.translation.values()
-    thttp = TranslationHttps(app_key=APP_KEY, app_secret=APP_SECRET, base_url=URL)
+    thttp = TranslationHttps(
+        app_key=APP_KEY,
+        app_secret=APP_SECRET,
+        base_url=URL
+    )
+
     translation = await thttp.exec(text, URL_PATH, TO, FROM)
-    print("path.replace(translation)", path.replace(path.parent / translation))
+
+    if setting.get("SPECIFICATION", True):
+        translation = PathHelper.fmPathName(
+            translation, setting.get("SPACER_CHARACTER", " ")
+        )
+    print("结果是", translation)
+    try:
+        # 目录替换
+        path.replace(path.parent / translation)
+    except OSError:
+        print("目录重命名失败", path)
 
 
-def async_exce(path_range):
-    async def main_task():
-        tasks = [
-            asyncio.create_task(task(path, path.name)) for path in path_range
-        ]
-        await asyncio.wait(tasks)
-
-    asyncio.run(main_task())
-
-
-def exec():
+def execute():
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-    pool = ThreadPoolExecutor(6)
     tconfig = TranslationConfig()
-    DEEP, TARGET = tconfig.setting.values()
-    tdir = TranslationDir(DEEP)
-    paths = list(tdir.dirs(TARGET))
-
-    for index in range(0, len(paths), 5):
-        path_range = paths[index:index + 5]
-        print(path_range)
-        pool.submit(async_exce, path_range)
-
+    setting = tconfig.setting
+    concurrency = tconfig.concurrency
+    tdir = TranslationDir(setting.get("DEEP", True))
+    concurrency_exec(
+        task,
+        list(tdir.dirs(setting.get("TARGET", "all"))),
+        max_thread=concurrency.get("MAX_THREAD", 2),
+        max_coroutine=concurrency.get("MAX_COROUTINE", 5),
+        delay=concurrency.get("DELAY", 0)
+    )
     print("\033[0;32m等待结束中...\033[0m")
-    pool.shutdown()
-
-
-if __name__ == "__main__":
-    exec()
