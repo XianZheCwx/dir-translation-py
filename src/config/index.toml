@@ -1,0 +1,26 @@
+[translation]
+# API根地址
+URL = "https://openapi.youdao.com"
+# API路径地址
+URL_PATH = "/api"
+# 您的应用ID
+APP_KEY = "4640c2e2f0acce5e"
+# 您的应用密钥
+APP_SECRET = "fVOM1n2P2OtznRJHynKMaZgtD5JHXe6B"
+# 源语言
+FROM = "auto"
+# 目标语言 https://ai.youdao.com/DOCSIRMA/html/trans/api/wbfy/index.html
+TO = "zh-CHS"
+
+[setting]
+# 是否深层目录 仅目录生效
+DEEP = true
+# 目标范围, 文件=files\目录=dirs\所有=all
+TARGET = "dirs"
+# 是否规范命名
+SPECIFICATION = true
+
+
+[log]
+# 是否启用日志
+ENABLE = false
