@@ -11,7 +11,7 @@ import aiohttp
 from pathlib import Path
 from typing import List
 
-from src.config import BASE_CONFIG_DIR
+from src.config import BASE_CONFIG_DIR, BASE_DEV_CONFIG_DIR
 from src.concurrency import concurrency_exec
 from src.utils import PathHelper, singleton
 
@@ -21,13 +21,20 @@ class TranslationConfig:
     cache = None
 
     def __init__(self, path=None):
-        self.path = path or BASE_CONFIG_DIR
+        print("获取配置文件路径", BASE_DEV_CONFIG_DIR, Path(BASE_DEV_CONFIG_DIR).is_file())
+        if path:
+            self.path = path
+        elif Path(BASE_DEV_CONFIG_DIR).is_file():
+            print("走的是开发文件")
+            self.path = BASE_DEV_CONFIG_DIR
+        else:
+            self.path = BASE_CONFIG_DIR
 
     def read(self):
         if not self.cache:
             with open(self.path, "r", encoding="utf-8") as f:
                 self.cache = rtoml.loads(f.read())
-
+        print("读取的配置内容", self.cache)
         return self.cache
 
     def clearCache(self):
@@ -156,7 +163,8 @@ class TranslationHttps:
             source = await response.json()
 
             if "errorCode" in source and ((code := source["errorCode"]) != "0"):
-                print(f"\033[0;31m有道API出现异常，错误代码{code}\033[0m\n", end="")
+                print(f"\033[0;31m有道API出现异常，错误代码{code}\033[0m\n",
+                      end="")
 
             if response.ok:
                 if "translation" in source and len(

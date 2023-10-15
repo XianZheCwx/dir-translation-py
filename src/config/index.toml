@@ -1,12 +1,12 @@
 [translation]
-# API根地址
+# 有道翻译API根地址
 URL = "https://openapi.youdao.com"
-# API路径地址
+# 有道API路径地址
 URL_PATH = "/api"
 # 您的应用ID
-APP_KEY = "4640c2e2f0acce5e"
+APP_KEY = "此处填写你的有道API应用ID"
 # 您的应用密钥
-APP_SECRET = "fVOM1n2P2OtznRJHynKMaZgtD5JHXe6B"
+APP_SECRET = "此处填写你的有道API应用密钥"
 # 源语言
 FROM = "auto"
 # 目标语言 https://ai.youdao.com/DOCSIRMA/html/trans/api/wbfy/index.html
@@ -25,9 +25,9 @@ SPACER_CHARACTER = " "
 
 [concurrency]
 # 最大线程数
-MAX_THREAD = 1
+MAX_THREAD = 2
 # 最大协程数
-MAX_COROUTINE = 1
+MAX_COROUTINE = 2
 # 并发延迟，应对有道API该死的频率限制
 DELAY = 0.8
 

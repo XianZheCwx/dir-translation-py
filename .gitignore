@@ -1,7 +1,11 @@
 ### Python template
+
 # IDE与编辑器配置
 .vscode/
 .idea/
+
+# 配置文件
+**/dev.toml
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
