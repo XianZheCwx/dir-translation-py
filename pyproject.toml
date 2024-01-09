@@ -1,0 +1,18 @@
+[project]
+name = "dir-translation-py"
+version = "0.1.0"
+description = "Default template for PDM package"
+authors = [
+    {name = "XianZheCwx", email = "2215557100@qq.com"},
+]
+dependencies = [
+    "rtoml==0.8",
+    "aiohttp>=3.9.1",
+]
+requires-python = ">=3.8"
+readme = "README.md"
+license = {text = "GPL3.0"}
+
+
+[tool.pdm]
+package-type = "application"
