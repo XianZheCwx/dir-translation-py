@@ -1,0 +1,11 @@
+[training]
+# 测试样本
+SET = ["こんにちは", "ありがとう", "さようなら", "おはよう", "hello", "thank you", "goodbye", "morning"]
+# 最大深度
+MAX_DEEP = 3
+# 一深度下最多数量
+MAX = 5
+
+[test]
+# 测试目标路径
+PATH = "./test/target"

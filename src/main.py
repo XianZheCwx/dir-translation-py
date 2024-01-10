@@ -1,68 +1,16 @@
 # -*- coding: utf-8 -*-
-import asyncio
-
 import re
 import uuid
 import time
 import math
-import rtoml
 import hashlib
+import asyncio
 import aiohttp
 from pathlib import Path
 from typing import List
-
-from src.config import BASE_CONFIG_DIR, BASE_DEV_CONFIG_DIR
 from src.concurrency import concurrency_exec
 from src.utils import PathHelper, singleton
-
-
-@singleton
-class TranslationConfig:
-    cache = None
-
-    def __init__(self, path=None):
-        print("获取配置文件路径", BASE_DEV_CONFIG_DIR, Path(BASE_DEV_CONFIG_DIR).is_file())
-        if path:
-            self.path = path
-        elif Path(BASE_DEV_CONFIG_DIR).is_file():
-            print("走的是开发文件")
-            self.path = BASE_DEV_CONFIG_DIR
-        else:
-            self.path = BASE_CONFIG_DIR
-
-    def read(self):
-        if not self.cache:
-            with open(self.path, "r", encoding="utf-8") as f:
-                self.cache = rtoml.loads(f.read())
-        print("读取的配置内容", self.cache)
-        return self.cache
-
-    def clearCache(self):
-        self.cache = None
-
-    @property
-    def translation(self):
-        toml = self.read()
-        if "translation" in toml:
-            return toml["translation"]
-        return {}
-
-    @property
-    def setting(self):
-        toml = self.read()
-        if "setting" in toml:
-            return toml["setting"]
-        return {}
-
-    @property
-    def concurrency(self):
-        toml = self.read()
-        if "concurrency" in toml:
-            return toml["concurrency"]
-        return {}
-
-    def exec(self):
-        pass
+from src.utils import TranslationConfig
 
 
 class TranslationDir:
@@ -180,9 +128,9 @@ class TranslationRecord:
 
 async def task(path, text):
     tconfig = TranslationConfig()
-    setting = tconfig.setting
+    settingConf = tconfig.settingConf
 
-    URL, URL_PATH, APP_KEY, APP_SECRET, FROM, TO = tconfig.translation.values()
+    URL, URL_PATH, APP_KEY, APP_SECRET, FROM, TO = tconfig.translationConf.values()
     thttp = TranslationHttps(
         app_key=APP_KEY,
         app_secret=APP_SECRET,
@@ -191,9 +139,9 @@ async def task(path, text):
 
     translation = await thttp.exec(text, URL_PATH, TO, FROM)
 
-    if setting.get("SPECIFICATION", True):
+    if settingConf.get("SPECIFICATION", True):
         translation = PathHelper.fmPathName(
-            translation, setting.get("SPACER_CHARACTER", " ")
+            translation, settingConf.get("SPACER_CHARACTER", " ")
         )
     print("结果是", translation)
     try:
@@ -207,14 +155,14 @@ def execute():
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
     tconfig = TranslationConfig()
-    setting = tconfig.setting
-    concurrency = tconfig.concurrency
-    tdir = TranslationDir(setting.get("DEEP", True))
+    settingConf = tconfig.settingConf
+    concurrencyConf = tconfig.concurrencyConf
+    tdir = TranslationDir(settingConf.get("DEEP", True))
     concurrency_exec(
         task,
-        list(tdir.dirs(setting.get("TARGET", "all"))),
-        max_thread=concurrency.get("MAX_THREAD", 2),
-        max_coroutine=concurrency.get("MAX_COROUTINE", 5),
-        delay=concurrency.get("DELAY", 0)
+        list(tdir.dirs(settingConf.get("TARGET", "all"))),
+        max_thread=concurrencyConf.get("MAX_THREAD", 2),
+        max_coroutine=concurrencyConf.get("MAX_COROUTINE", 5),
+        delay=concurrencyConf.get("DELAY", 0)
     )
     print("\033[0;32m等待结束中...\033[0m")

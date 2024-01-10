@@ -6,6 +6,7 @@
 
 # 配置文件
 **/dev.toml
+.pdm-python
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
